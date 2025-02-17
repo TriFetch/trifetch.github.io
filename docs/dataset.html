@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLMD - Dataset Access</title>
+    <script src="https://unpkg.com/cornerstone-core/dist/cornerstone.min.js"></script>
+    <script src="https://unpkg.com/cornerstone-math/dist/cornerstoneMath.min.js"></script>
+    <script src="https://unpkg.com/cornerstone-tools/dist/cornerstoneTools.min.js"></script>
+    <script src="https://unpkg.com/cornerstone-wado-image-loader/dist/cornerstoneWADOImageLoader.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        body {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: 250px;
+            background-color: #1a1a1a;
+            color: white;
+            padding: 1rem;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: white;
+            text-decoration: none;
+            display: block;
+            margin-bottom: 2rem;
+        }
+
+        .search-box {
+            background-color: #2fd6c2;
+            padding: 0.75rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 0.5rem;
+            border: none;
+            border-radius: 4px;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+        }
+
+        .sidebar-menu li {
+            margin-bottom: 0.75rem;
+        }
+
+        .sidebar-menu a {
+            color: #aaa;
+            text-decoration: none;
+            display: block;
+            padding: 0.5rem;
+            border-radius: 4px;
+        }
+
+        .sidebar-menu a:hover {
+            background-color: #333;
+        }
+
+        /* Main Content Styles */
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+            background-color: #f8f9fa;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .search-container {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .search-container select,
+        .search-container input {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .search-container input {
+            flex: 1;
+        }
+
+        .search-btn {
+            background-color: #4169e1;
+            color: white;
+            border: none;
+            padding: 0.5rem 2rem;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        /* Filter Section */
+        .filters {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 1rem;
+        }
+
+        /* Table Styles */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .data-table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: #666;
+        }
+
+        .view-btn {
+            background-color: #4169e1;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .view-btn:hover {
+            background-color: #3157d5;
+        }
+
+        .help-link {
+            color: #4169e1;
+            text-decoration: none;
+        }
+
+        .help-link:hover {
+            text-decoration: underline;
+        }
+
+        .dicom-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+        }
+
+        .dicom-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            height: 80%;
+            background: black;
+        }
+
+        .dicom-viewer {
+            width: 100%;
+            height: 100%;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: white;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <a href="index2.html" class="logo">LLMD</a>
+        <div class="search-box">
+            <input type="text" placeholder="Search">
+        </div>
+        <ul class="sidebar-menu">
+            <li><a href="#">Terminal</a></li>
+            <li><a href="#">Datasets</a></li>
+            <li><a href="#">Saved Searches</a></li>
+            <li><a href="#">Tags</a></li>
+            <li><a href="#">Statistics</a></li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="header">
+            <h1>Dataset Access</h1>
+            <a href="#" class="help-link">Having trouble finding data? Schedule a help session →</a>
+        </div>
+
+        <!-- Search Controls -->
+        <div class="search-container">
+            <select>
+                <option>Report</option>
+            </select>
+            <select>
+                <option>Contains</option>
+            </select>
+            <input type="text" placeholder="Type a search term to search for studies from real-world medical institutions, e.g. 'abdominal CTs pancreatic cancer'">
+            <button class="search-btn">Search</button>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters">
+            <div class="filter-group">
+                <span>SORT BY</span>
+                <select>
+                    <option>Select...</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <span>0 Selected</span>
+                <button class="view-btn">Add to Dataset</button>
+                <button class="view-btn">Tag</button>
+                <button class="view-btn">Save search</button>
+            </div>
+        </div>
+
+        <!-- Data Table -->
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>PATIENT ID</th>
+                    <th>STUDY ID</th>
+                    <th>EXAM DATE</th>
+                    <th>BODY PART</th>
+                    <th>MODALITY</th>
+                    <th>VIEW DICOMS</th>
+                    <th>TITLE</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><input type="checkbox"></td>
+                    <td>001</td>
+                    <td>001</td>
+                    <td>1/2/2021</td>
+                    <td>Brain/Head</td>
+                    <td>CT</td>
+                    <td><button class="view-btn">View DICOMs</button></td>
+                    <td>CT Brain W-O Contrast INDICATION</td>
+                </tr>
+                <tr>
+                    <td><input type="checkbox"></td>
+                    <td>002</td>
+                    <td>002</td>
+                    <td>3/2/2019</td>
+                    <td>Chest</td>
+                    <td>XRAY</td>
+                    <td><button class="view-btn">View DICOMs</button></td>
+                    <td>EXAMINATION: CHEST RADIOGRAPH</td>
+                </tr>
+                <!-- Add more rows as needed -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        async function loadFiles() {
+            try {
+                const response = await fetch('http://localhost:3000/dataset/files');
+                const files = await response.json();
+                
+                const tbody = document.querySelector('.data-table tbody');
+                tbody.innerHTML = files.map(file => `
+                    <tr>
+                        <td><input type="checkbox"></td>
+                        <td>${file.name.split('/').pop()}</td>
+                        <td>TEST-01</td>
+                        <td>${new Date().toLocaleDateString()}</td>
+                        <td>Test</td>
+                        <td>DICOM</td>
+                        <td><button class="view-btn" onclick="viewFile('${file.name}')">View DICOMs</button></td>
+                        <td>${file.name}</td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Failed to load files:', error);
+            }
+        }
+
+        async function viewFile(filename) {
+            try {
+                const response = await fetch(`http://localhost:3000/dataset/file/${filename}`);
+                const { url } = await response.json();
+                // Here you can either:
+                // 1. Open the file in a new tab
+                window.open(url, '_blank');
+                // 2. Or implement a viewer for DICOM files
+            } catch (error) {
+                console.error('Failed to view file:', error);
+            }
+        }
+
+        // Initialize Cornerstone
+        function initializeCornerstone() {
+            // Initialize Cornerstone Core
+            cornerstone.enable(document.getElementById('dicomViewer'));
+
+            // Initialize WADO Image loader
+            cornerstoneWADOImageLoader.external.cornerstone = cornerstone;
+            cornerstoneWADOImageLoader.external.dicomParser = dicomParser;
+            cornerstoneWADOImageLoader.webWorkerManager.initialize({
+                maxWebWorkers: navigator.hardwareConcurrency || 1,
+            });
+
+            // Initialize Cornerstone Tools
+            cornerstoneTools.init();
+        }
+
+        // Function to close the DICOM viewer
+        function closeViewer() {
+            document.getElementById('dicomModal').style.display = 'none';
+        }
+
+        // Updated viewDicom function
+        async function viewDicom(filename) {
+            try {
+                const modal = document.getElementById('dicomModal');
+                const viewer = document.getElementById('dicomViewer');
+                
+                // Show the modal
+                modal.style.display = 'block';
+
+                // Get the DICOM file
+                const response = await fetch(`/dicom/${filename}`);
+                if (!response.ok) throw new Error('Failed to fetch DICOM');
+                
+                const { url } = await response.json();
+
+                // Load and display the image using the signed URL
+                const imageId = `wadouri:${url}`;
+
+                // Load and display the image
+                cornerstone.loadImage(imageId).then(image => {
+                    cornerstone.displayImage(viewer, image);
+                    
+                    // Enable tools
+                    const PanTool = cornerstoneTools.PanTool;
+                    const ZoomTool = cornerstoneTools.ZoomTool;
+                    const WwwcTool = cornerstoneTools.WwwcTool;
+
+                    cornerstoneTools.addTool(PanTool);
+                    cornerstoneTools.addTool(ZoomTool);
+                    cornerstoneTools.addTool(WwwcTool);
+
+                    cornerstoneTools.setToolActive('Pan', { mouseButtonMask: 1 });
+                    cornerstoneTools.setToolActive('Zoom', { mouseButtonMask: 2 });
+                    cornerstoneTools.setToolActive('Wwwc', { mouseButtonMask: 4 });
+                });
+            } catch (error) {
+                console.error('Error viewing DICOM:', error);
+                alert('Failed to load DICOM image');
+            }
+        }
+
+        // Initialize when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            loadFiles();
+            initializeCornerstone();
+        });
+    </script>
+
+    <div class="dicom-modal" id="dicomModal">
+        <div class="dicom-container">
+            <button class="close-btn" onclick="closeViewer()">×</button>
+            <div class="dicom-viewer" id="dicomViewer"></div>
+        </div>
+    </div>
+</body>
+</html>
