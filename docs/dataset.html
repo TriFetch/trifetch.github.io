@@ -263,16 +263,16 @@
                 <tr>
                     <th></th>
                     <th>PATIENT ID</th>
-                    <th>STUDY ID</th>
-                    <th>EXAM DATE</th>
                     <th>BODY PART</th>
                     <th>MODALITY</th>
+                    <th>RESOLUTION (mm)</th>
+                    <th>GENDER</th>
                     <th>VIEW DICOMS</th>
-                    <th>TITLE</th>
+                    <th>FILENAME</th>
                 </tr>
             </thead>
             <tbody>
-                <tr>
+                <!-- <tr>
                     <td><input type="checkbox"></td>
                     <td>001</td>
                     <td>001</td>
@@ -291,7 +291,7 @@
                     <td>XRAY</td>
                     <td><button class="view-btn">View DICOMs</button></td>
                     <td>EXAMINATION: CHEST RADIOGRAPH</td>
-                </tr>
+                </tr> -->
                 <!-- Add more rows as needed -->
             </tbody>
         </table>
@@ -304,18 +304,25 @@
                 const files = await response.json();
                 
                 const tbody = document.querySelector('.data-table tbody');
-                tbody.innerHTML = files.map(file => `
+                tbody.innerHTML = files.map(file => {
+                    const filename = file.name.split('/').pop();
+                    const [patientId, organ, modality, resolution, gender] = filename
+                        .replace('.zip', '')
+                        .split('_');
+                    
+                    return `
                     <tr>
                         <td><input type="checkbox"></td>
-                        <td>${file.name.split('/').pop()}</td>
-                        <td>TEST-01</td>
-                        <td>${new Date().toLocaleDateString()}</td>
-                        <td>Test</td>
-                        <td>DICOM</td>
+                        <td>${patientId}</td>
+                        <td>${organ || 'N/A'}</td>
+                        <td>${modality || 'N/A'}</td>
+                        <td>${resolution || 'N/A'}</td>
+                        <td>${gender || 'N/A'}</td>
                         <td><button class="view-btn" onclick="viewFile('${file.name}')">View DICOMs</button></td>
-                        <td>${file.name}</td>
+                        <td>${filename}</td>
                     </tr>
-                `).join('');
+                    `;
+                }).join('');
             } catch (error) {
                 console.error('Failed to load files:', error);
             }

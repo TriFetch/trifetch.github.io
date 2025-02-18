@@ -34,15 +34,17 @@ export class StorageService {
   }
 
   async listProcessedFiles() {
-    try{
-    const bucket = this.storage.bucket(this.processedBucket);
-    const [files] = await bucket.getFiles();
-    return files.map(file => ({
-      name: file.name,
-      url: `https://storage.googleapis.com/${this.processedBucket}/${file.name}`,
-      metadata: file.metadata
-    }));
-  } catch (error) {
+    try {
+      const bucket = this.storage.bucket(this.processedBucket);
+      const [files] = await bucket.getFiles();
+      return files
+        .filter(file => file.name.endsWith('.zip'))
+        .map(file => ({
+          name: file.name,
+          url: `https://storage.googleapis.com/${this.processedBucket}/${file.name}`,
+          metadata: file.metadata
+        }));
+    } catch (error) {
       console.error('Error listing processed files:', error);
       throw error;
     }

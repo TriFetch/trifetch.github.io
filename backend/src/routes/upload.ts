@@ -45,13 +45,23 @@ router.post('/', upload.single('zipFile'), async (req, res) => {
         }
 
         // Get next patient number for filename
+        const baseFileName = req.file.originalname.replace('.zip', '');
+
+        const parts = baseFileName.split('_');
+        if (parts.length !== 4) {
+            return res.status(400).json({ 
+                error: 'Invalid filename format. Expected: organ_scantype_resolution_gender.zip' 
+            });
+        }
+        
         const patientNumber = await storage.getNextPatientNumber();
-        const path = `rose_test/patient${patientNumber}.zip`;
+        const path = `rose_test/patient${patientNumber}_${baseFileName}.zip`;
         const url = await storage.uploadFile(req.file, path);
 
         res.json({
             message: 'Upload successful',
-            url
+            url,
+            path
         });
 
     } catch (error) {
