@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TriFetch Data Upload</title>
+    <style>
+        /* Previous styles remain the same */
+        .upload-status {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .upload-status.success {
+            display: block;
+            background-color: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+
+        .upload-status.error {
+            display: block;
+            background-color: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background-color: #e5e7eb;
+            border-radius: 2px;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        .progress-bar .progress {
+            height: 100%;
+            background-color: #2563eb;
+            border-radius: 2px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <a href="#" class="logo">TriFetch</a>
+        <span class="tagline">Medical Data Upload</span>
+    </header>
+
+    <main class="main-content">
+        <div class="card">
+            <h2>Upload Medical Data</h2>
+            <form id="uploadForm" onsubmit="handleUpload(event)">
+                <div class="section-title">Image Type</div>
+                <div class="checkbox-grid">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="mri" name="imageType" value="mri">
+                        <label for="mri">MRI</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="ct" name="imageType" value="ct">
+                        <label for="ct">CT</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="ultrasound" name="imageType" value="ultrasound">
+                        <label for="ultrasound">Ultrasound</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="xray" name="imageType" value="xray">
+                        <label for="xray">X-ray</label>
+                    </div>
+                </div>
+
+                <div class="section-title">Required Files</div>
+                
+                <div class="form-group">
+                    <label for="dicomFile">DICOM Image (.dcm)</label>
+                    <input type="file" id="dicomFile" name="dicom" accept=".dcm" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="clinicalFile">Clinical Impressions (.txt)</label>
+                    <input type="file" id="clinicalFile" name="clinical" accept=".txt" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="metadataFile">Metadata (.csv)</label>
+                    <input type="file" id="metadataFile" name="metadata" accept=".csv" required>
+                </div>
+
+                <div class="progress-bar" id="progressBar">
+                    <div class="progress" id="progress"></div>
+                </div>
+
+                <div class="upload-status" id="uploadStatus"></div>
+
+                <button type="submit" class="btn" id="uploadButton">Upload Files</button>
+            </form>
+        </div>
+    </main>
+
+    <script>
+        async function handleUpload(e) {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            const files = {
+                dicom: document.getElementById('dicomFile').files[0],
+                clinical: document.getElementById('clinicalFile').files[0],
+                metadata: document.getElementById('metadataFile').files[0]
+            };
+
+            // Validate file types
+            if (!files.dicom || !files.clinical || !files.metadata) {
+                showError('Please upload all required files');
+                return;
+            }
+
+            // Add files to form data
+            Object.entries(files).forEach(([key, file]) => {
+                formData.append(key, file);
+            });
+
+            // Add selected image types
+            const imageTypes = [...document.querySelectorAll('input[name="imageType"]:checked')]
+                .map(cb => cb.value);
+            
+            if (imageTypes.length === 0) {
+                showError('Please select at least one image type');
+                return;
+            }
+
+            formData.append('imageTypes', JSON.stringify(imageTypes));
+
+            // Show progress bar
+            const progressBar = document.getElementById('progressBar');
+            const progress = document.getElementById('progress');
+            progressBar.style.display = 'block';
+
+            try {
+                const response = await fetch('http://localhost:3000/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('Upload failed');
+                }
+
+                const result = await response.json();
+                showSuccess('Files uploaded successfully!');
+                
+                // Reset form
+                document.getElementById('uploadForm').reset();
+
+            } catch (error) {
+                showError('Upload failed: ' + error.message);
+            } finally {
+                progressBar.style.display = 'none';
+            }
+        }
+
+        function showSuccess(message) {
+            const status = document.getElementById('uploadStatus');
+            status.textContent = message;
+            status.className = 'upload-status success';
+        }
+
+        function showError(message) {
+            const status = document.getElementById('uploadStatus');
+            status.textContent = message;
+            status.className = 'upload-status error';
+        }
+    </script>
+</body>
+</html>
