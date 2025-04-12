@@ -46,6 +46,10 @@ jobs:
       - name: Authenticate Docker to Google Cloud
         run: gcloud auth configure-docker gcr.io
         
+      - name: Create service account key file
+        run: |
+          echo "${{ secrets.GCP_SA_KEY }}" | base64 --decode > /tmp/key.json
+          
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
@@ -60,4 +64,5 @@ jobs:
             --platform managed \
             --region us-central1 \
             --allow-unauthenticated \
-            --set-env-vars "NODE_ENV=production,PORT=8080,GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }},GCP_BUCKET_NAME=${{ secrets.GCP_BUCKET_NAME }},GCP_PROCESSED_BUCKET_NAME=${{ secrets.GCP_PROCESSED_BUCKET_NAME }}" 
+            --update-secrets=GCP_KEY=/tmp/key.json:latest \
+            --set-env-vars "NODE_ENV=production,PORT=8080,GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }},GCP_BUCKET_NAME=${{ secrets.GCP_BUCKET_NAME }},GCP_PROCESSED_BUCKET_NAME=${{ secrets.GCP_PROCESSED_BUCKET_NAME }},GCP_KEY_FILENAME=/secrets/GCP_KEY" 

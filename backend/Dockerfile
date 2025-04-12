@@ -27,11 +27,14 @@ RUN npm ci --only=production
 
 # Copy built assets from builder stage
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/key.json ./key.json
+
+# Create directory for potential runtime key mount
+RUN mkdir -p /app/keys
 
 # Set environment variables
 ENV NODE_ENV=production
 ENV PORT=8080
+ENV GCP_KEY_FILENAME=/app/keys/key.json
 
 # Expose port
 EXPOSE 8080
