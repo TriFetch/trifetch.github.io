@@ -212,6 +212,20 @@
             color: #991b1b;
             border: 1px solid #fecaca;
         }
+
+        .upload-status.uploading {
+            display: block;
+            background-color: #e0f2fe;
+            color: #0c4a6e;
+            border: 1px solid #bae6fd;
+        }
+
+        .upload-status.info {
+            display: block;
+            background-color: #f3f4f6;
+            color: #4b5563;
+            border: 1px solid #e5e7eb;
+        }
     </style>
 </head>
 <body>
@@ -281,6 +295,11 @@
     </main>
 
     <script>
+        // Configuration for API endpoints
+        const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:3000'
+            : 'https://api.trifetch.com'; // Replace with your actual production API URL
+            
         const fileInputs = ['zipFile'].map(id => document.getElementById(id));
         const fileUpload = document.querySelector('.file-upload');
 
@@ -327,7 +346,8 @@
             formData.append('zipFile', files.zipFile);
 
             try {
-                const response = await fetch('http://localhost:3000/upload', {
+                showStatus('Uploading to GCP bucket...', 'uploading');
+                const response = await fetch(`${API_URL}/upload`, {
                     method: 'POST',
                     body: formData
                 });
@@ -337,8 +357,10 @@
                     throw new Error(errorData.error || 'Upload failed');
                 }
                 
-                showSuccess('File uploaded successfully!');
+                const result = await response.json();
+                showSuccess(`File uploaded successfully to GCP bucket: ${result.path}`);
                 document.getElementById('uploadDataForm').reset();
+                resetFileUpload();
             } catch (error) {
                 showError('Upload failed: ' + error.message);
             }
@@ -354,6 +376,13 @@
             const status = document.getElementById('uploadStatus');
             status.textContent = message;
             status.className = 'upload-status error';
+        }
+
+        function showStatus(message, type) {
+            const status = document.getElementById('uploadStatus');
+            status.textContent = message;
+            status.className = `upload-status ${type || 'info'}`;
+            status.style.display = 'block';
         }
 
         function resetFileUpload() {

@@ -204,6 +204,85 @@
             font-size: 24px;
             cursor: pointer;
         }
+
+        .loading-message {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+            font-style: italic;
+        }
+
+        /* Request Modal */
+        .request-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+        }
+
+        .request-form {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px;
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .request-form h2 {
+            margin-bottom: 1.5rem;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .form-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .btn-cancel {
+            background: #f2f2f2;
+            color: #333;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .btn-submit {
+            background: #4169e1;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -226,7 +305,7 @@
     <div class="main-content">
         <div class="header">
             <h1>Dataset Access</h1>
-            <a href="#" class="help-link">Talk with a database specalist</a>
+            <a href="#" class="help-link" id="submitRequestBtn">Submit request</a>
         </div>
 
         <!-- Search Controls -->
@@ -271,53 +350,62 @@
                     <th>FILENAME</th>
                 </tr>
             </thead>
-            <tbody>
-                <!-- <tr>
-                    <td><input type="checkbox"></td>
-                    <td>001</td>
-                    <td>001</td>
-                    <td>1/2/2021</td>
-                    <td>Brain/Head</td>
-                    <td>CT</td>
-                    <td><button class="view-btn">View DICOMs</button></td>
-                    <td>CT Brain W-O Contrast INDICATION</td>
-                </tr>
+            <tbody id="dataTableBody">
+                <!-- Table content will be loaded dynamically -->
                 <tr>
-                    <td><input type="checkbox"></td>
-                    <td>002</td>
-                    <td>002</td>
-                    <td>3/2/2019</td>
-                    <td>Chest</td>
-                    <td>XRAY</td>
-                    <td><button class="view-btn">View DICOMs</button></td>
-                    <td>EXAMINATION: CHEST RADIOGRAPH</td>
-                </tr> -->
-                <!-- Add more rows as needed -->
+                    <td colspan="8" class="loading-message">Loading data from GCP bucket...</td>
+                </tr>
             </tbody>
         </table>
     </div>
 
     <script>
+        // Configuration for API endpoints
+        const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:3000'
+            : 'https://api.trifetch.com'; // Replace with your actual production API URL
+            
         async function loadFiles() {
             try {
-                const response = await fetch('http://localhost:3000/dataset/files');
+                const tbody = document.getElementById('dataTableBody');
+                tbody.innerHTML = '<tr><td colspan="8" class="loading-message">Loading data from GCP bucket...</td></tr>';
+                
+                const response = await fetch(`${API_URL}/dataset/files`);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch files from GCP bucket');
+                }
+                
                 const files = await response.json();
                 
-                const tbody = document.querySelector('.data-table tbody');
+                if (files.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="loading-message">No files found in GCP bucket</td></tr>';
+                    return;
+                }
+                
                 tbody.innerHTML = files.map(file => {
                     const filename = file.name.split('/').pop();
-                    const [patientId, organ, modality, resolution, gender] = filename
-                        .replace('.zip', '')
-                        .split('_');
+                    let patientId, organ, modality, resolution, gender;
+                    
+                    // Parse filename (patient#_organ_scantype_resolution_gender.zip)
+                    const parts = filename.replace('.zip', '').split('_');
+                    if (parts.length >= 4) {
+                        patientId = parts[0].replace('patient', '');
+                        organ = parts[1] || 'N/A';
+                        modality = parts[2] || 'N/A';
+                        resolution = parts[3] || 'N/A';
+                        gender = parts.length > 4 ? parts[4] : 'N/A';
+                    } else {
+                        [patientId, organ, modality, resolution, gender] = [filename, 'N/A', 'N/A', 'N/A', 'N/A'];
+                    }
                     
                     return `
                     <tr>
                         <td><input type="checkbox"></td>
                         <td>${patientId}</td>
-                        <td>${organ || 'N/A'}</td>
-                        <td>${modality || 'N/A'}</td>
-                        <td>${resolution || 'N/A'}</td>
-                        <td>${gender || 'N/A'}</td>
+                        <td>${organ}</td>
+                        <td>${modality}</td>
+                        <td>${resolution}</td>
+                        <td>${gender}</td>
                         <td><button class="view-btn" onclick="viewFile('${file.name}')">View DICOMs</button></td>
                         <td>${filename}</td>
                     </tr>
@@ -325,12 +413,14 @@
                 }).join('');
             } catch (error) {
                 console.error('Failed to load files:', error);
+                document.getElementById('dataTableBody').innerHTML = 
+                    `<tr><td colspan="8" class="loading-message">Error loading files: ${error.message}</td></tr>`;
             }
         }
 
         async function viewFile(filename) {
             try {
-                const response = await fetch(`http://localhost:3000/dataset/file/${filename}`);
+                const response = await fetch(`${API_URL}/dataset/file/${filename}`);
                 const { url } = await response.json();
                 // Here you can either:
                 // 1. Open the file in a new tab
@@ -372,7 +462,7 @@
                 modal.style.display = 'block';
 
                 // Get the DICOM file
-                const response = await fetch(`/dicom/${filename}`);
+                const response = await fetch(`${API_URL}/dicom/${filename}`);
                 if (!response.ok) throw new Error('Failed to fetch DICOM');
                 
                 const { url } = await response.json();
@@ -408,12 +498,73 @@
             loadFiles();
             initializeCornerstone();
         });
+
+        // Add event listener to open request modal
+        document.getElementById('submitRequestBtn').addEventListener('click', function(e) {
+            e.preventDefault();
+            document.getElementById('requestModal').style.display = 'block';
+        });
+
+        // Function to close the request modal
+        function closeRequestModal() {
+            document.getElementById('requestModal').style.display = 'none';
+            document.getElementById('accessRequestForm').reset();
+        }
+
+        // Handle form submission
+        document.getElementById('accessRequestForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                name: document.getElementById('name').value,
+                email: document.getElementById('email').value,
+                institution: document.getElementById('institution').value,
+                purpose: document.getElementById('purpose').value
+            };
+            
+            try {
+                // You can implement an API endpoint for handling requests
+                // For now, we'll just show a success message
+                alert('Your data access request has been submitted. We will contact you shortly.');
+                closeRequestModal();
+            } catch (error) {
+                alert('Failed to submit request: ' + error.message);
+            }
+        });
     </script>
 
     <div class="dicom-modal" id="dicomModal">
         <div class="dicom-container">
             <button class="close-btn" onclick="closeViewer()">×</button>
             <div class="dicom-viewer" id="dicomViewer"></div>
+        </div>
+    </div>
+
+    <div class="request-modal" id="requestModal">
+        <div class="request-form">
+            <h2>Submit Data Access Request</h2>
+            <form id="accessRequestForm">
+                <div class="form-group">
+                    <label for="name">Name</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="institution">Institution</label>
+                    <input type="text" id="institution" name="institution" required>
+                </div>
+                <div class="form-group">
+                    <label for="purpose">Purpose of Data Access</label>
+                    <textarea id="purpose" name="purpose" rows="4" required></textarea>
+                </div>
+                <div class="form-buttons">
+                    <button type="button" class="btn-cancel" onclick="closeRequestModal()">Cancel</button>
+                    <button type="submit" class="btn-submit">Submit Request</button>
+                </div>
+            </form>
         </div>
     </div>
 </body>
