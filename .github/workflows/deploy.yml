@@ -65,4 +65,4 @@ jobs:
             --region us-central1 \
             --allow-unauthenticated \
             --update-secrets=GCP_KEY=/tmp/key.json:latest \
-            --set-env-vars "NODE_ENV=production,PORT=8080,GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }},GCP_BUCKET_NAME=${{ secrets.GCP_BUCKET_NAME }},GCP_PROCESSED_BUCKET_NAME=${{ secrets.GCP_PROCESSED_BUCKET_NAME }},GCP_KEY_FILENAME=/secrets/GCP_KEY" 
+            --set-env-vars "NODE_ENV=production,PORT=8080,GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }},GCP_BUCKET_NAME=${{ secrets.GCP_BUCKET_NAME }},GCP_KEY_FILENAME=/secrets/GCP_KEY" 

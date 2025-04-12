@@ -11,7 +11,6 @@ const envSchema = z.object({
     PORT: z.string().default('3000'),
     GCP_PROJECT_ID: z.string(),
     GCP_BUCKET_NAME: z.string(),
-    GCP_PROCESSED_BUCKET_NAME: z.string(),
     GCP_KEY_FILENAME: z.string()
 });
 
@@ -21,8 +20,7 @@ export const config = {
     port: parseInt(env.PORT),
     gcp: {
         projectId: env.GCP_PROJECT_ID,
-        uploadBucket: env.GCP_BUCKET_NAME,         // For uploads
-        processedBucket: env.GCP_PROCESSED_BUCKET_NAME,  // For viewing
+        uploadBucket: env.GCP_BUCKET_NAME,  // Using the same bucket for both operations
         bucketName: env.GCP_BUCKET_NAME,
         keyFilename: env.GCP_KEY_FILENAME
     }
